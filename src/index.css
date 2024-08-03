@@ -4,3 +4,8 @@
 .margin{
     margin-right: 100px!important;
 }
+
+.inputR{
+    float: right;
+    clear: both;
+}
