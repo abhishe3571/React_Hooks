@@ -1,9 +1,38 @@
 import { event } from "jquery";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 let Login = () => {
   const [email, setEmail] = useState("abc@test.com");
   const [password, setPassword] = useState("Abhi123");
+
+  //execute on each render(initial render and state updates)
+  useEffect(() => {
+    // console.log(email, password);
+  });
+
+  //execute onlyon state updates of "email" only (also with initial render)
+  useEffect(() => {
+    //validation on email only
+    if (email.indexOf("@") > 0) {
+      // console.log("valid");
+    } else {
+      // console.log("invalid");
+    }
+  }, [email]);
+
+  //execute only once- on initial render = componentDidMount
+  useEffect(() => {
+    console.log("initial render");
+    document.title = "Login - eCommerce";
+  }, []);
+
+  //execute only once- on component unmounting phase = componentWillMount
+
+  useEffect(() => {
+    return () => {
+      console.log("Component Unmount");
+    };
+  }, []);
 
   return (
     <div className="row">
