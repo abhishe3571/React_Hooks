@@ -1,7 +1,10 @@
-import { event } from "jquery";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { UserContext } from "./UserContext";
 
-let Register = () => {
+let Register = (props) => {
+  const navigate = useNavigate();
+
   let [state, setState] = useState({
     email: "",
     password: "",
@@ -14,11 +17,13 @@ let Register = () => {
 
   let [countries] = useState([
     { id: 1, countryName: "India" },
-    { id: 2, countryName: "Japan" },
-    { id: 3, countryName: "Mexico" },
-    { id: 4, countryName: "US" },
-    { id: 5, countryName: "UK" },
-    { id: 6, countryName: "Canada" },
+    { id: 2, countryName: "USA" },
+    { id: 3, countryName: "UK" },
+    { id: 4, countryName: "Japan" },
+    { id: 5, countryName: "France" },
+    { id: 6, countryName: "Brazil" },
+    { id: 7, countryName: "Mexico" },
+    { id: 8, countryName: "Canada" },
   ]);
 
   let [errors, setErrors] = useState({
@@ -43,21 +48,22 @@ let Register = () => {
 
   let [message, setMessage] = useState("");
 
-  //validate
+  let userContext = useContext(UserContext);
 
+  //validate
   let validate = () => {
     let errorsData = {};
 
     //email
     errorsData.email = [];
 
-    //email can't be blank
+    //email can't blank
     if (!state.email) {
-      errorsData.email.push("Emails can't be blank");
+      errorsData.email.push("Email can't be blank");
     }
 
-    // email regex
-    const validEmailRegex = /^([a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/;
+    //email regex
+    const validEmailRegex = /\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*/;
     if (state.email) {
       if (!validEmailRegex.test(state.email)) {
         errorsData.email.push("Proper email address is expected");
@@ -67,18 +73,17 @@ let Register = () => {
     //password
     errorsData.password = [];
 
-    //password can't be blank
+    //password can't blank
     if (!state.password) {
       errorsData.password.push("Password can't be blank");
     }
 
-    // password regex
-    const validPasswordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    //email regex
+    const validPasswordRegex = /((?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,15})/;
     if (state.password) {
       if (!validPasswordRegex.test(state.password)) {
         errorsData.password.push(
-          "Password should be length of 6- 8 characters & first should capital & small"
+          "Password should be 6 to 15 characters long with at least one uppercase letter, one lowercase letter and one digit"
         );
       }
     }
@@ -86,7 +91,7 @@ let Register = () => {
     //fullName
     errorsData.fullName = [];
 
-    //fullName can't be blank
+    //fullName can't blank
     if (!state.fullName) {
       errorsData.fullName.push("Full Name can't be blank");
     }
@@ -94,46 +99,41 @@ let Register = () => {
     //dateOfBirth
     errorsData.dateOfBirth = [];
 
-    //dateOfBirth can't be blank
+    //dateOfBirth can't blank
     if (!state.dateOfBirth) {
-      errorsData.dateOfBirth.push("Date Of Birth can't be blank");
+      errorsData.dateOfBirth.push("Date of Birth can't be blank");
     }
 
     //gender
     errorsData.gender = [];
 
-    //gender can't be blank
+    //gender can't blank
     if (!state.gender) {
-      errorsData.gender.push("Please select gender either mail or female");
+      errorsData.gender.push("Please select gender either male or female");
     }
 
     //country
     errorsData.country = [];
 
-    //country can't be blank
+    //country can't blank
     if (!state.country) {
       errorsData.country.push("Please select a country");
     }
 
-    //receiveNewsLetters
     errorsData.receiveNewsLetters = [];
-    //receiveNewsLetters can't be blank
-    if (!state.receiveNewsLetters) {
-      errorsData.receiveNewsLetters.push("Please select the checkbox");
-    }
-
     setErrors(errorsData);
   };
 
   useEffect(validate, [state]);
 
+  //executes only once - on initial render =  componentDidMount
   useEffect(() => {
-    console.log("initial render");
     document.title = "Register - eCommerce";
   }, []);
 
-  let onRegisterClick = () => {
-    //set all the control as dirty
+  //execute when the user click on the register button
+  let onRegisterClick = async () => {
+    //set all controls as dirty
     let dirtyData = dirty;
     Object.keys(dirty).forEach((control) => {
       dirtyData[control] = true;
@@ -141,11 +141,12 @@ let Register = () => {
     setDirty(dirtyData);
 
     validate();
+
     if (isValid()) {
-      let response = fetch("http://localhost:5000/users", {
+      let response = await fetch("http://localhost:5000/users", {
         method: "POST",
         body: JSON.stringify({
-          emaill: state.email,
+          email: state.email,
           password: state.password,
           fullName: state.fullName,
           dateOfBirth: state.dateOfBirth,
@@ -159,9 +160,19 @@ let Register = () => {
       });
 
       if (response.ok) {
+        let responseBody = await response.json();
+        userContext.setUser({
+          ...userContext.user,
+          isLoggedIn: true,
+          currentUserName: responseBody.fullName,
+          currentUserId: responseBody.id,
+        });
+
         setMessage(
           <span className="text-success">Successfully Registered</span>
         );
+
+        navigate("/dashboard");
       } else {
         setMessage(
           <span className="text-danger">Errors in database connection</span>
@@ -175,12 +186,13 @@ let Register = () => {
   let isValid = () => {
     let valid = true;
 
-    //reading all controls from 'erros' state
+    //reading all controls from 'errors' state
     for (let control in errors) {
       if (errors[control].length > 0) {
         valid = false;
       }
     }
+
     return valid;
   };
 
@@ -195,6 +207,7 @@ let Register = () => {
             >
               Register
             </h4>
+
             <ul className="text-danger">
               {Object.keys(errors).map((control) => {
                 if (dirty[control]) {
@@ -207,13 +220,14 @@ let Register = () => {
               })}
             </ul>
           </div>
+
           <div className="card-body border-bottom">
-            {/* Email starts here */}
-            <div className="form-group form-row">
+            {/* email starts */}
+            <div className="form-group form row">
               <label className="col-lg-4" htmlFor="email">
                 Email
               </label>
-              <div className="col-lg-8">
+              <div className="col-lg-8 mb-2">
                 <input
                   type="text"
                   className="form-control"
@@ -231,21 +245,22 @@ let Register = () => {
                     validate();
                   }}
                 />
+
                 <div className="text-danger">
                   {dirty["email"] && errors["email"][0] ? errors["email"] : ""}
                 </div>
               </div>
             </div>
-            {/* Email ends here */}
+            {/* email ends */}
 
-            {/* Password starts here */}
-            <div className="form-group form-row">
+            {/* password starts */}
+            <div className="form-group form row">
               <label className="col-lg-4" htmlFor="password">
                 Password
               </label>
-              <div className="col-lg-8">
+              <div className="col-lg-8 mb-2">
                 <input
-                  type="text"
+                  type="password"
                   className="form-control"
                   name="password"
                   id="password"
@@ -261,6 +276,7 @@ let Register = () => {
                     validate();
                   }}
                 />
+
                 <div className="text-danger">
                   {dirty["password"] && errors["password"][0]
                     ? errors["password"]
@@ -268,14 +284,14 @@ let Register = () => {
                 </div>
               </div>
             </div>
-            {/* Password ends here */}
+            {/* password ends */}
 
-            {/* fullName starts here */}
-            <div className="form-group form-row">
+            {/* fullName starts */}
+            <div className="form-group form row">
               <label className="col-lg-4" htmlFor="fullName">
                 Full Name
               </label>
-              <div className="col-lg-8">
+              <div className="col-lg-8 mb-2">
                 <input
                   type="text"
                   className="form-control"
@@ -293,6 +309,7 @@ let Register = () => {
                     validate();
                   }}
                 />
+
                 <div className="text-danger">
                   {dirty["fullName"] && errors["fullName"][0]
                     ? errors["fullName"]
@@ -300,16 +317,16 @@ let Register = () => {
                 </div>
               </div>
             </div>
-            {/* fullName ends here */}
+            {/* fullName ends */}
 
-            {/* dateofBirth starts here */}
-            <div className="form-group form-row">
+            {/* dateOfBirth starts */}
+            <div className="form-group form row">
               <label className="col-lg-4" htmlFor="dateOfBirth">
                 Date of Birth
               </label>
-              <div className="col-lg-8">
+              <div className="col-lg-8 mb-2">
                 <input
-                  type="text"
+                  type="date"
                   className="form-control"
                   name="dateOfBirth"
                   id="dateOfBirth"
@@ -325,6 +342,7 @@ let Register = () => {
                     validate();
                   }}
                 />
+
                 <div className="text-danger">
                   {dirty["dateOfBirth"] && errors["dateOfBirth"][0]
                     ? errors["dateOfBirth"]
@@ -332,18 +350,18 @@ let Register = () => {
                 </div>
               </div>
             </div>
-            {/* dateofBirth ends here */}
+            {/* dateOfBirth ends */}
 
-            {/* Gender starts here */}
-            <div className="form-group form-row">
+            {/* gender starts */}
+            <div className="form-group form row">
               <label className="col-lg-4">Gender</label>
-              <div className="col-lg-8">
+              <div className="col-lg-8 mb-2">
                 <div className="form-check">
                   <input
                     type="radio"
-                    id="male"
                     name="gender"
                     value="male"
+                    id="male"
                     className="form-check-input"
                     checked={state.gender === "male" ? true : false}
                     onChange={(event) => {
@@ -362,18 +380,13 @@ let Register = () => {
                     Male
                   </label>
                 </div>
-                <div className="text-danger">
-                  {dirty["gender"] && errors["gender"][0]
-                    ? errors["gender"]
-                    : ""}
-                </div>
 
                 <div className="form-check">
                   <input
                     type="radio"
-                    id="female"
                     name="gender"
                     value="female"
+                    id="female"
                     className="form-check-input"
                     checked={state.gender === "female" ? true : false}
                     onChange={(event) => {
@@ -392,6 +405,7 @@ let Register = () => {
                     Female
                   </label>
                 </div>
+
                 <div className="text-danger">
                   {dirty["gender"] && errors["gender"][0]
                     ? errors["gender"]
@@ -399,14 +413,14 @@ let Register = () => {
                 </div>
               </div>
             </div>
-            {/* Gender ends here */}
+            {/* gender ends */}
 
-            {/* country starts here */}
-            <div className="form-group form-row">
+            {/* country starts */}
+            <div className="form-group form row">
               <label className="col-lg-4" htmlFor="country">
                 Country
               </label>
-              <div className="col-lg-8">
+              <div className="col-lg-8 mb-2">
                 <select
                   className="form-control"
                   name="country"
@@ -430,6 +444,7 @@ let Register = () => {
                     </option>
                   ))}
                 </select>
+
                 <div className="text-danger">
                   {dirty["country"] && errors["country"][0]
                     ? errors["country"]
@@ -437,18 +452,18 @@ let Register = () => {
                 </div>
               </div>
             </div>
-            {/* countrty ends here */}
+            {/* country ends */}
 
-            {/* receiveNewsLetters starts here */}
-            <div className="form-group form-row">
+            {/* receiveNewsLetters starts */}
+            <div className="form-group form row">
               <label className="col-lg-4"></label>
-              <div className="col-lg-8">
+              <div className="col-lg-8 mb-2">
                 <div className="form-check">
                   <input
                     type="checkbox"
-                    id="receiveNewsLetters"
                     name="receiveNewsLetters"
                     value="true"
+                    id="receiveNewsLetters"
                     className="form-check-input"
                     checked={state.receiveNewsLetters === true ? true : false}
                     onChange={(event) => {
@@ -462,6 +477,7 @@ let Register = () => {
                       validate();
                     }}
                   />
+
                   <label
                     className="form-check-inline"
                     htmlFor="receiveNewsLetters"
@@ -469,6 +485,7 @@ let Register = () => {
                     Receive News Letters
                   </label>
                 </div>
+
                 <div className="text-danger">
                   {dirty["receiveNewsLetters"] &&
                   errors["receiveNewsLetters"][0]
@@ -477,20 +494,20 @@ let Register = () => {
                 </div>
               </div>
             </div>
+            {/* receiveNewsLetters ends */}
           </div>
-          {/* receiveNewsLetters ends here */}
-        </div>
 
-        {/* footers start */}
-        <div className="card-footer text-center">
-          <div className="m-1">{message}</div>
-          <div>
-            <button className="btn btn-primary m-2" onClick={onRegisterClick}>
-              Register
-            </button>
+          {/* footer starts */}
+          <div className="card-footer text-center">
+            <div className="m-1">{message}</div>
+            <div>
+              <button className="btn btn-primary m-2" onClick={onRegisterClick}>
+                Register
+              </button>
+            </div>
           </div>
+          {/* footer ends */}
         </div>
-        {/* footers ends here */}
       </div>
     </div>
   );
