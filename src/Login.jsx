@@ -5,8 +5,8 @@ import { UserContext } from "./UserContext";
 let Login = (props) => {
   const navigate = useNavigate();
 
-  var [email, setEmail] = useState("");
-  var [password, setPassword] = useState("");
+  var [email, setEmail] = useState("scott@test.com");
+  var [password, setPassword] = useState("Scott123");
 
   let userContext = useContext(UserContext);
 
